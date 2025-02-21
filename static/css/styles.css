@@ -1,0 +1,111 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+}
+
+header {
+    background-color: #333;
+    color: #fff;
+    padding: 10px 0;
+    text-align: center;
+}
+
+main {
+    padding: 20px;
+}
+
+.button-container {
+    display: flex;
+    gap: 10px;
+    margin: 20px 0;
+    flex-wrap: wrap;    /* 行に収まらない要素を次の行に移動 */
+}
+
+button {
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    writing-mode: horizontal-tb;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+.button-container button, .back-button {
+    padding: 5px 10px;
+    font-size: 14px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+}
+
+.button-container button:hover, .back-button:hover {
+    background-color: #0056b3;
+}
+
+.back-button {
+    margin-top: 20px; /* 戻るボタンの余白 */
+}
+
+.small-red-button {
+    background-color: red;        /* ボタンの背景色を赤に */
+    color: white;                /* テキスト色を白に */
+    border: none;                /* ボーダーをなくす */
+    padding: 5px;                /* パディングを小さくする */
+    font-size: 12px;             /* フォントサイズを小さくする */
+    height: 20px;                /* 高さをチェックボックスに合わせる */
+    width: auto;                 /* ボタンの幅はテキストに合わせる */
+    cursor: pointer;             /* カーソルをポインターに */
+    border-radius: 4px;          /* ボタンの角を丸める */
+    text-align: center;          /* テキストを中央揃え */
+    line-height: 10px;           /* テキストの行高さを調整 */
+}
+
+.small-red-button:hover {
+    background-color: darkred;   /* ホバー時に暗い赤にする */
+}
+
+/* フィルタリングフォーム */
+.filter-form {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+ilter-group label {
+    margin-right: 5px;
+}
+
+.filter-group input[type="date"],
+.filter-group select {
+    padding: 5px;
+    font-size: 14px;
+}
+
+.filter-button {
+    margin: 10px;
+    padding: 5px 10px;
+    font-size: 14px;
+    background-color: #FFA500; /* オレンジ色 */
+    border: none;
+    border-radius: 5px;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.filter-button:hover {
+    background-color: #FF8C00; /* ダークオレンジ色 */
+}

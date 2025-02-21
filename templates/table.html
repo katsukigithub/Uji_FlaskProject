@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ table_name }} のデータ</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css">
+    <style>
+        .table-container {
+            margin: 20px;
+            overflow-x: auto;
+        }
+        .filter-section {
+            margin-bottom: 20px;
+        }
+        .filter-section label {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- タイトルとボタンのコンテナ -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+            <h1 style="margin: 0;">テーブル: {{ table_name }}</h1>
+            <a href="{{ url_for('graph', table_name=table_name) }}" class="btn btn-primary">
+                グラフを表示
+            </a>
+        </div>
+
+        <!-- フィルタセクション -->
+        <div class="filter-section">
+            <form id="column-row-filter-form" class="form-inline">
+                <label for="column-selector" class="mr-2">表示する列:</label>
+                <select id="column-selector" name="columns" class="form-control mr-3" multiple>
+                    {% for column in column_names %}
+                    <option value="{{ loop.index0 }}">{{ column }}</option>
+                    {% endfor %}
+                </select>
+
+                <label for="row-filter" class="mr-2">行フィルタ:</label>
+                <input type="text" id="row-filter" name="row_filter" class="form-control mr-3" placeholder="条件（例: > 100）">
+
+                <button type="button" id="apply-filters" class="btn btn-primary">フィルタ適用</button>
+            </form>
+        </div>
+        <!-- データテーブル -->
+        <div class="table-container">
+            <table id="data-table" class="display table table-striped table-bordered">
+                <thead>
+                    <tr>
+                        {% for column in column_names %}
+                        <th>{{ column }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in data %}
+                    <tr>
+                        {% for value in row %}
+                        <td>{{ value }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.print.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // DataTablesの初期化
+            const table = $('#data-table').DataTable({
+                dom: 'Bfrtip',
+                buttons: ['copy', 'csv', 'excel', 'pdf', 'print'],
+                language: {
+                    url: "//cdn.datatables.net/plug-ins/1.11.5/i18n/ja.json"
+                }
+            });
+
+            // フィルタ適用ボタンのクリックイベント
+            $('#apply-filters').on('click', function() {
+                // 選択した列を表示
+                const selectedColumns = $('#column-selector').val();
+                table.columns().visible(false); // 全て非表示
+                if (selectedColumns) {
+                    selectedColumns.forEach(index => {
+                        table.column(index).visible(true); // 選択した列のみ表示
+                    });
+                }
+
+                // 行のフィルタリング
+                const rowFilter = $('#row-filter').val();
+                if (rowFilter) {
+                    table.search(rowFilter).draw();
+                } else {
+                    table.search('').draw(); // フィルタをリセット
+                }
+            });
+
+            // 初期状態ではすべての列を表示
+            table.columns().visible(true);
+        });
+    </script>
+</body>
+</html>

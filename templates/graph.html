@@ -1,0 +1,315 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="margin: 0;">{{ table_title }}</h2>
+        <a href="{{ url_for('view_table', table_name=table_name) }}" class="btn btn-primary">
+            テーブルを表示
+        </a>
+    </div>
+
+    <!-- フィルタリングフォーム -->
+    <form method="GET" action="{{ url_for('graph', table_name=table_name) }}"class="filter-form">
+        <div class="filter-group">
+            <label for="start_date">開始日:</label>
+            <input type="date" id="start_date" name="start_date" value="{{ start_date }}">
+            
+            <label for="end_date">終了日:</label>
+            <input type="date" id="end_date" name="end_date" value="{{ end_date }}">
+        </div>
+
+        <input type="hidden" name="chart_type" value="{{ chart_type }}">
+
+        <button type="submit" class="filter-button">フィルタ適用</button>
+    </form>
+
+    <div>
+        <!-- 統計情報のセクション -->
+        <h3>統計情報</h3>
+        <label for="column-select">項目を選択:</label>
+        <select id="column-select">
+            <option value="">項目を選択してください</option>
+            {% for column in statistics.keys() %}
+            <option value="{{ column }}">{{ column }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <div id="statistics-display">
+        <!-- 統計情報を表示するための場所 -->
+    
+    </div>
+
+    <!-- グラフの種類を選択するドロップダウンメニュー -->
+    <form method="GET" action="{{ url_for('graph', table_name=table_name) }}">
+        <label for="chart_type">グラフの種類:</label>
+        <select name="chart_type" id="chart_type" onchange="this.form.submit()">
+            <option value="line" {% if chart_type == 'line' %} selected {% endif %}>折れ線グラフ</option>
+            <option value="bar" {% if chart_type == 'bar' %} selected {% endif %}>棒グラフ</option>
+            <option value="pie" {% if chart_type == 'pie' %} selected {% endif %}>円グラフ</option>
+            <option value="pie" {% if chart_type == 'scatter' %} selected {% endif %}>散布図</option>
+        </select>
+    </form>
+    
+    <!-- 戻るボタンと次のグラフへボタン -->
+    <div class="navigation-buttons" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;"> 
+        <!--前のグラフボタン--> 
+        <div class="prev-button" style="flex: 1; text-align: left;">
+            {% if prev_url %}
+            <button onclick="window.location.href='{{ prev_url }}'">前のグラフ</button>
+            {% else %}
+                <button disabled>前のグラフ</button>
+            {% endif %}
+        </div>       
+
+        <!-- 戻るボタン -->
+        <div class="back-button" style="flex: 0; position: absolute; left: 50%; translateX(-50%);" >
+            <button onclick="window.location.href='/'">戻る</button>
+        </div>
+
+        <!--次のグラフボタン-->
+        <div class="next-button" style="flex: 1; text-align: right;" >
+            {% if next_url %}
+                <button onclick="window.location.href='{{ next_url }}'">次のグラフ</button>
+            {% else %}
+                <button disabled>次のグラフ</button>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- 凡例のチェックボックス管理ボタン -->
+    <div>
+        <button id="select-all" class="small-red-button">Select All</button>
+        <button id="deselect-all" class="small-red-button">Deselect All</button>
+</div>
+    
+    <!-- 凡例のチェックボックスコンテナ -->
+    <div id="legend-container" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;">
+        <!-- チェックボックスがここに挿入されます -->
+    </div>
+
+    <!-- グラフと凡例のコンテナ -->
+    <div style="display: flex;">
+        <!-- グラフ表示 -->
+        <div id="graph" style="flex: 3;"></div>
+        
+        <!-- 凡例を縦に配置 -->
+        <div id="legend-container" style="flex: 1; display: flex; flex-direction: column; align-items: flex-start; padding: 10px;">
+            <!-- 凡例項目がここに挿入されます -->
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {  //ページが完全に読み込まれたときに実行。ページの他の部分がロードされるのを待ってからグラフ描写
+            const graphData = {{ graph_data|safe }};  // Flaskから渡されたgraph_dataという変数をJavaScriptで使用できるように変換。graph_data変数を直接JavaScriptの変数として埋め込む
+            console.log("Graph data:", graphData); // デバッグ用ログ
+            Plotly.react('graph', graphData.data, graphData.layout, {editable: true});　//nerwPlotメソッドを使って、指定したID(グラフ要素)にグラフを描写。
+            
+            const graphDiv = document.getElementById('graph');
+
+            //グラフのリアルタイム更新
+            graphDiv.on('plotly_relayout', function(eventData) {
+                if (eventData['title.text']) {
+                    const newTitle = eventData['title.text'];
+                    const tableName = "{{ table_name }}";
+
+                    // AJAXで新しいタイトルを送信
+                    fetch('/update_title', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ table_name: tableName, new_title: newTitle }),
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            // 成功した場合、ページをリロード
+                            location.reload();
+                        } else {
+                            return response.json();
+                        }
+                    })
+                    .then(data => {
+                        if (data && data.status === 'error') {
+                            alert(`Error: ${data.message}`);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error updating title:', error);
+                    });
+                }
+            });
+
+            // 強調状態を保持するマップ
+            const highlightStates = {};
+
+             // 初期化: すべてのトレースを非強調状態に
+            graphData.data.forEach((_, index) => {
+                highlightStates[index] = false;
+            });
+
+            // 凡例クリックイベント
+            graphDiv.on('plotly_legendclick', function(eventData) {
+                console.log("Legend item clicked:", eventData);
+
+                const traceIndex = eventData.curveNumber; // クリックされたトレースの番号
+                
+                if (traceIndex !== undefined) {
+                    // 強調状態をトグル
+                    if (highlightStates[traceIndex]) {
+                        // 元に戻す（デフォルトの線幅に設定）
+                        Plotly.restyle(graphDiv, { 'line.width': 2 }, [traceIndex]);
+                        highlightStates[traceIndex] = false; // 強調を解除
+                        console.log(`Trace ${traceIndex} reverted to default.`);
+                    } else {
+                        // 強調表示（線を太くする）
+                        Plotly.restyle(graphDiv, { 'line.width': 6 }, [traceIndex]);
+                        highlightStates[traceIndex] = true; // 強調を設定
+                        console.log(`Trace ${traceIndex} highlighted magnificently.`);
+                    }
+
+                    // `false` を返すとデフォルトの凡例動作を抑制
+                    return false;
+                }    
+            });
+
+            // 凡例のチェックボックスを生成
+            const legendContainer = document.getElementById('legend-container');
+            graphData.data.forEach((trace, index) => {
+                // 各データトレースのチェックボックス作成
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = true;  // デフォルトで表示
+                checkbox.id = `trace-${index}`;
+                checkbox.onchange = function() {
+                    if (checkbox.checked) {
+                        // チェックボックスの状態に応じてトレースの表示を切り替える
+                        Plotly.restyle('graph', { opacity: 1 }, [index]);
+                    } else {
+                        // トレースを非表示にする（透明度を0に設定）
+                        Plotly.restyle('graph', { opacity: 0 }, [index]);
+                    }
+                };
+
+                const label = document.createElement('label');
+                label.htmlFor = `trace-${index}`;
+                label.innerText = trace.name;
+
+                // チェックボックスとラベルを凡例コンテナに追加
+                const container = document.createElement('div');
+                container.style.display = "flex";
+                container.style.alignItems = "center";
+                container.style.marginBottom = "5px";
+                container.appendChild(checkbox);
+                container.appendChild(label);
+                legendContainer.appendChild(container);
+            });
+
+            // すべて選択・解除ボタンの機能
+            document.getElementById('select-all').addEventListener('click', function() {
+                const checkboxes = document.querySelectorAll('#legend-container input[type="checkbox"]');
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = true;
+                    checkbox.dispatchEvent(new Event('change')); // チェック状態を反映
+                });
+            });
+
+            document.getElementById('deselect-all').addEventListener('click', function() {
+                const checkboxes = document.querySelectorAll('#legend-container input[type="checkbox"]');
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                    checkbox.dispatchEvent(new Event('change')); // チェック状態を反映
+                });
+            });
+
+             // 統計情報の更新と選択状態の保持
+            const columnSelect = document.getElementById('column-select');
+
+            // ページロード時に選択状態を復元
+            const savedColumn = localStorage.getItem('selectedColumn');
+            if (savedColumn) {
+                columnSelect.value = savedColumn;
+                columnSelect.dispatchEvent(new Event('change'));
+            }
+
+            // 統計項目選択時に選択状態を保存
+            columnSelect.addEventListener('change', function() {
+                const selectedColumn = columnSelect.value;
+                localStorage.setItem('selectedColumn', selectedColumn);
+
+                const tableName = "{{ table_name }}";
+                if (selectedColumn) {
+                    fetch(`/statistics/${tableName}?column=${selectedColumn}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                const stats = data.statistics;
+                                const display = `
+                                    <ul>
+                                        <li>平均: ${stats.mean ? stats.mean.toFixed(2) : "データなし"}</li>
+                                        <li>中央値: ${stats.median ? stats.median.toFixed(2) : "データなし"}</li>
+                                        <li>最大値: ${stats.max !== null ? stats.max : "データなし"}</li>
+                                        <li>最小値: ${stats.min !== null ? stats.min : "データなし"}</li>
+                                        <li>標準偏差: ${stats.std_dev ? stats.std_dev.toFixed(2) : "データなし"}</li>
+                                        <li>分散: ${stats.variance ? stats.variance.toFixed(2) : "データなし"}</li>
+                                    </ul>
+                                `;
+                                document.getElementById('statistics-display').innerHTML = display;
+                            } else {
+                                document.getElementById('statistics-display').innerHTML = `<p>統計情報を取得できませんでした。</p>`;
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching statistics:', error);
+                            document.getElementById('statistics-display').innerHTML = `<p>エラーが発生しました。</p>`;
+                        });
+                } else {
+                    document.getElementById('statistics-display').innerHTML = '';
+                }
+            });
+             // 日付フィルターの適用
+            document.getElementById('date-filter-apply').addEventListener('click', function() {
+                const startDate = document.getElementById('start-date').value;
+                const endDate = document.getElementById('end-date').value;
+                const tableName = "{{ table_name }}";
+
+                if (startDate && endDate) {
+                    fetch(`/filter_data/${tableName}?start_date=${startDate}&end_date=${endDate}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                //グラフの更新
+                                Plotly.react('graph', data.graph_data.data, data.graph_data.layout);
+
+                                // 統計情報の更新
+                                if (data.statistics) {
+                                    const stats = data.statistics;
+                                    const display = `
+                                        <ul>
+                                            <li>平均: ${stats.mean ? stats.mean.toFixed(2) : "データなし"}</li>
+                                            <li>中央値: ${stats.median ? stats.median.toFixed(2) : "データなし"}</li>
+                                            <li>最大値: ${stats.max !== null ? stats.max : "データなし"}</li>
+                                            <li>最小値: ${stats.min !== null ? stats.min : "データなし"}</li>
+                                            <li>標準偏差: ${stats.std_dev ? stats.std_dev.toFixed(2) : "データなし"}</li>
+                                            <li>分散: ${stats.variance ? stats.variance.toFixed(2) : "データなし"}</li>
+                                        </ul>
+                                    `;
+                                    document.getElementById('statistics-display').innerHTML = display;
+                                } else {
+                                    document.getElementById('statistics-display').innerHTML = `<p>統計情報を取得できませんでした。</p>`;
+                                }
+                            } else {
+                                alert('データフィルタリングに失敗しました。');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error filtering data:', error);
+                        });
+                } else {
+                    alert('開始日と終了日を指定してください。');
+                }
+            });
+        });
+        
+    </script>
+
+{% endblock %}
