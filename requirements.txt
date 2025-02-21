@@ -1,4 +1,6 @@
-flask
+Flask
+gunicorn
+psycopg2-binary
 pandas
 plotly
 chardet
